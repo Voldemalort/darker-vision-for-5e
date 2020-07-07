@@ -1,6 +1,6 @@
 # Darker Vision for 5e - Foundry VTT Module
 
-This module attempts to replicate `dnd5e` darkvision rules more accurately, leveraging the existing `dim vision` setting on tokens' `vision` tab.
+This module attempts to replicate `dnd5e` darkvision rules more accurately, leveraging the existing `dim vision` setting on tokens' vision tabs.
 
 The default Foundry VTT behavior when `dim vision` is set does the following:
 * Renders `darkness` within the `dim vision` radius as `dim light`
