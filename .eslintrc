@@ -1,0 +1,12 @@
+root: true
+globals: {
+  document: true,
+  game: true,
+  canvas: true,
+  Hooks: true,
+}
+extends: "airbnb"
+rules: {
+  no-param-reassign: [ "error", { "props": false } ],
+  no-underscore-dangle: [ "error", { "allow": [ "_id" ] } ],
+}

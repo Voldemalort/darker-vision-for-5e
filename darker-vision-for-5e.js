@@ -1,5 +1,5 @@
 const DarkerVisionFor5e = {
-  registerModule: () => {
+  register: () => {
     game.settings.register('darker-vision-for-5e', 'brighten-boundary', {
       name: 'What part of a light source must be within the dim vision radius to be brightened?',
       scope: 'world',
@@ -7,81 +7,83 @@ const DarkerVisionFor5e = {
       default: 'any',
       type: String,
       choices: {
-        'any': 'Any light (bright or dim)',
-        'bright': 'Any bright light (or the light source origin if it emits only dim light)',
-        'origin': 'The light source origin'
-      }
+        any: 'Any light (bright or dim)',
+        bright: 'Any bright light (or the light source origin if it emits only dim light)',
+        origin: 'The light source origin',
+      },
     });
   },
 
-  removeTokenLight: (tokenId) => {
-    canvas.sight.sources.lights.delete(`Token.${tokenId}`);
-    canvas.sight.update();
-    canvas.lighting.update();
+  initialize: () => {
+    DarkerVisionFor5e.modifyLights();
   },
 
-  brightenLights: () => {
-    const token = canvas.tokens.controlled.length === 1 ? canvas.tokens.controlled[0] : undefined;
-    const newLights = { Light: {}, Token: {} };
-    const lights = game.user.getFlag('darker-vision-for-5e', 'lights') || newLights;
+  patch: {
+    removeLitTokenRemnants: (tokenId) => {
+      canvas.sight.sources.lights.delete(`Token.${tokenId}`);
+      canvas.sight.update();
+      canvas.lighting.update();
+    },
+  },
 
-    canvas.sight.sources.lights.forEach((light, lightKey) => {
-      const [ type, lightId ] = lightKey.split('.');
+  modifyLights: (ambientLight) => {
+    const controlledToken = canvas.tokens.controlled[0];
+    const brightenBoundary = game.settings.get('darker-vision-for-5e', 'brighten-boundary');
 
-      if (lights[type][lightId]) {
-        light.channels.dim = lights[type][lightId].originalDim;
-        light.channels.bright = lights[type][lightId].originalBright;
-      }
-    });
+    if (ambientLight) {
+      const updatedLight = canvas.sight.sources.lights.get(`Light.${ambientLight._id}`);
+      updatedLight.originalBright = ambientLight.bright * 0.2 * canvas.scene.data.grid;
+    }
 
-    if (token && token.data.dimSight) {
-      const brightenBoundary = game.settings.get('darker-vision-for-5e', 'brighten-boundary');
-      const vision = canvas.sight.sources.vision.get(`Token.${token.id}`);
+    canvas.sight.sources.lights.forEach((light) => {
+      let shouldBrighten = false;
 
-      canvas.sight.sources.lights.forEach((light, lightKey) => {
-        const [ type, lightId ] = lightKey.split('.');
-        const a = Math.abs(light.x - vision.x);
-        const b = Math.abs(light.y - vision.y);
-        const c = Math.sqrt((a * a) + (b * b));
-        let shouldBrighten = false;
+      if (controlledToken && controlledToken.data.dimSight) {
+        const vision = canvas.sight.sources.vision.get(`Token.${controlledToken.id}`);
+        const xOffset = Math.abs(light.x - vision.x);
+        const yOffset = Math.abs(light.y - vision.y);
+        const distance = Math.sqrt((xOffset * xOffset) + (yOffset * yOffset));
+        const dimVision = vision.channels.dim;
+        const dimLight = light.channels.dim;
+        const brightLight = light.channels.bright;
 
         switch (brightenBoundary) {
           case 'bright':
-            shouldBrighten = c <= (vision.channels.dim + light.channels.bright);
+            shouldBrighten = distance <= (dimVision + brightLight);
             break;
           case 'origin':
-            shouldBrighten = c <= vision.channels.dim;
+            shouldBrighten = distance <= dimVision;
             break;
           default:
-            shouldBrighten = c <= (vision.channels.dim + Math.max(light.channels.bright, light.channels.dim));
+            shouldBrighten = distance <= (dimVision + Math.max(brightLight, dimLight));
         }
+      }
 
-        if (shouldBrighten) {
-          newLights[type][lightId] = {
-            originalDim: light.channels.dim,
-            originalBright: light.channels.bright,
-          };
-          light.channels.bright = Math.max(light.channels.bright, light.channels.dim);
-        }
-      });
-    }
+      light.originalBright = light.originalBright || light.channels.bright;
 
-    game.user.unsetFlag('darker-vision-for-5e', 'lights').then(() => {
-      game.user.setFlag('darker-vision-for-5e', 'lights', newLights);
-      canvas.sight.update();
+      if (shouldBrighten) {
+        light.channels.bright = Math.max(light.channels.bright, light.channels.dim);
+      } else {
+        light.channels.bright = light.originalBright;
+      }
     });
-  }
+
+    canvas.sight.update();
+  },
 };
 
-Hooks.once('init', () => DarkerVisionFor5e.registerModule());
+Hooks.once('init', () => DarkerVisionFor5e.register());
 
 Hooks.on('ready', () => {
-  game.user.unsetFlag('darker-vision-for-5e', 'lights');
-  DarkerVisionFor5e.brightenLights();
-  Hooks.on('controlToken', () => DarkerVisionFor5e.brightenLights());
-  Hooks.on('updateToken', () => DarkerVisionFor5e.brightenLights());
-  Hooks.on('createToken', () => DarkerVisionFor5e.brightenLights());
-  Hooks.on('deleteToken', (scene, token) => DarkerVisionFor5e.removeTokenLight(token._id));
-  Hooks.on('updateAmbientLight', () => DarkerVisionFor5e.brightenLights());
-  Hooks.on('creatAmbientLight', () => DarkerVisionFor5e.brightenLights());
+  DarkerVisionFor5e.initialize();
+
+  Hooks.on('controlToken', () => DarkerVisionFor5e.modifyLights());
+  Hooks.on('updateToken', () => DarkerVisionFor5e.modifyLights());
+  Hooks.on('createToken', () => DarkerVisionFor5e.modifyLights());
+
+  Hooks.on('updateAmbientLight', (scene, light) => DarkerVisionFor5e.modifyLights(light));
+  Hooks.on('creatAmbientLight', (scene, light) => DarkerVisionFor5e.modifyLights(light));
+
+  // remove after fixed in FVTT v0.7.0
+  Hooks.on('deleteToken', (scene, token) => DarkerVisionFor5e.patch.removeLitTokenRemnants(token._id));
 });

@@ -1,0 +1,23 @@
+{
+  "name": "darker-vision-for-5e",
+  "version": "0.3.0",
+  "description": "Token dim vision now renders darkness as dim light and dim light as bright light within the token's dim vision radius.",
+  "main": "darker-vision-for-5e.js",
+  "dependencies": {
+    "eslint": "^7.4.0",
+    "eslint-config-airbnb": "^18.2.0",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-jsx-a11y": "^6.3.1",
+    "eslint-plugin-react": "^7.20.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github-voldemalort:Voldemalort/darker-vision-for-5e.git"
+  },
+  "author": "Voldemalort",
+  "license": "ISC"
+}

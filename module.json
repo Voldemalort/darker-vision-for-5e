@@ -3,7 +3,7 @@
   "title": "Darker Vision for 5e",
   "description": "Token dim vision now renders darkness as dim light and dim light as bright light within the token's dim vision radius.",
   "author": "Voldemalort",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "minimumCoreVersion": "0.6.4",
   "compatibleCoreVersion": "0.6.5",
   "scripts": [
@@ -12,6 +12,6 @@
   "system": "dnd5e",
   "url": "https://github.com/Voldemalort/darker-vision-for-5e",
   "manifest": "https://raw.githubusercontent.com/Voldemalort/darker-vision-for-5e/master/module.json",
-  "download": "https://github.com/Voldemalort/darker-vision-for-5e/archive/v0.3.0.zip",
+  "download": "https://github.com/Voldemalort/darker-vision-for-5e/archive/v0.3.1.zip",
   "readme": "https://raw.githubusercontent.com/Voldemalort/darker-vision-for-5e/master/README.md"
 }
