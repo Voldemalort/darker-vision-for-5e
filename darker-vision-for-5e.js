@@ -14,51 +14,74 @@ const DarkerVisionFor5e = {
     });
   },
 
-  brightenLights: (tokenData) => {
-    const brightenBoundary = game.settings.get('darker-vision-for-5e', 'brighten-boundary');
-    const lights = game.user.getFlag('darker-vision-for-5e', 'lights') || { Light: {}, Token: {} };
+  removeTokenLight: (tokenId) => {
+    canvas.sight.sources.lights.delete(`Token.${tokenId}`);
+    canvas.sight.update();
+    canvas.lighting.update();
+  },
+
+  brightenLights: () => {
+    const token = canvas.tokens.controlled.length === 1 ? canvas.tokens.controlled[0] : undefined;
     const newLights = { Light: {}, Token: {} };
-    const vision = canvas.sight.sources.vision.get(`Token.${tokenData._id}`);
+    const lights = game.user.getFlag('darker-vision-for-5e', 'lights') || newLights;
 
     canvas.sight.sources.lights.forEach((light, lightKey) => {
-      const [ type, key ] = lightKey.split('.');
-      const a = Math.abs(light.x - vision.x);
-      const b = Math.abs(light.y - vision.y);
-      const c = Math.sqrt((a * a) + (b * b));
-      let shouldBrighten = false;
+      const [ type, lightId ] = lightKey.split('.');
 
-      switch (brightenBoundary) {
-        case 'bright':
-          shouldBrighten = c <= (vision.channels.dim + (lights[type][key] ? lights[type][key].originalBright : light.channels.bright));
-          break;
-        case 'origin':
-          shouldBrighten = c <= vision.channels.dim;
-          break;
-        default:
-          shouldBrighten = c <= (vision.channels.dim + Math.max(light.channels.bright, light.channels.dim));
-      }
-
-      if (tokenData.dimSight && shouldBrighten) {
-        newLights[type][key] = lights[type][key] || {
-          originalDim: light.channels.dim,
-          originalBright: light.channels.bright,
-        };
-        light.channels.bright = Math.max(light.channels.bright, light.channels.dim);
-      } else if (lights[type][key]) {
-        light.channels.dim = lights[type][key].originalDim;
-        light.channels.bright = lights[type][key].originalBright;
+      if (lights[type][lightId]) {
+        light.channels.dim = lights[type][lightId].originalDim;
+        light.channels.bright = lights[type][lightId].originalBright;
       }
     });
 
-    game.user.setFlag('darker-vision-for-5e', 'lights', newLights);
+    if (token && token.data.dimSight) {
+      const brightenBoundary = game.settings.get('darker-vision-for-5e', 'brighten-boundary');
+      const vision = canvas.sight.sources.vision.get(`Token.${token.id}`);
 
-    canvas.sight.update();
+      canvas.sight.sources.lights.forEach((light, lightKey) => {
+        const [ type, lightId ] = lightKey.split('.');
+        const a = Math.abs(light.x - vision.x);
+        const b = Math.abs(light.y - vision.y);
+        const c = Math.sqrt((a * a) + (b * b));
+        let shouldBrighten = false;
+
+        switch (brightenBoundary) {
+          case 'bright':
+            shouldBrighten = c <= (vision.channels.dim + light.channels.bright);
+            break;
+          case 'origin':
+            shouldBrighten = c <= vision.channels.dim;
+            break;
+          default:
+            shouldBrighten = c <= (vision.channels.dim + Math.max(light.channels.bright, light.channels.dim));
+        }
+
+        if (shouldBrighten) {
+          newLights[type][lightId] = {
+            originalDim: light.channels.dim,
+            originalBright: light.channels.bright,
+          };
+          light.channels.bright = Math.max(light.channels.bright, light.channels.dim);
+        }
+      });
+    }
+
+    game.user.unsetFlag('darker-vision-for-5e', 'lights').then(() => {
+      game.user.setFlag('darker-vision-for-5e', 'lights', newLights);
+      canvas.sight.update();
+    });
   }
 };
 
 Hooks.once('init', () => DarkerVisionFor5e.registerModule());
 
 Hooks.on('ready', () => {
-  Hooks.on('controlToken', (token) => DarkerVisionFor5e.brightenLights(token.data));
-  Hooks.on('updateToken', (sceneData, tokenData) => DarkerVisionFor5e.brightenLights(tokenData));
+  game.user.unsetFlag('darker-vision-for-5e', 'lights');
+  DarkerVisionFor5e.brightenLights();
+  Hooks.on('controlToken', () => DarkerVisionFor5e.brightenLights());
+  Hooks.on('updateToken', () => DarkerVisionFor5e.brightenLights());
+  Hooks.on('createToken', () => DarkerVisionFor5e.brightenLights());
+  Hooks.on('deleteToken', (scene, token) => DarkerVisionFor5e.removeTokenLight(token._id));
+  Hooks.on('updateAmbientLight', () => DarkerVisionFor5e.brightenLights());
+  Hooks.on('creatAmbientLight', () => DarkerVisionFor5e.brightenLights());
 });
