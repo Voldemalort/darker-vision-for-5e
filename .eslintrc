@@ -1,9 +1,9 @@
 root: true
 globals: {
-  document: true,
-  game: true,
   canvas: true,
   Hooks: true,
+  PIXI: true,
+  SightLayer: true,
 }
 extends: "airbnb"
 rules: {
