@@ -1,3 +1,9 @@
+**IMPORTANT**
+
+**This module breaks in 0.7.x and is considered end-of-life in 0.6.x. I will continue to explore options for similar functionality in 0.7.x, but the lighting and vision systems have changed dramatically, and the solution from 0.6.x (using a PIXI built-in blend mode that just happened to work) will likely require a custom shader in 0.7.x.**
+
+**Thank you for all of the support and desire to see this module ported. Apologies for not being able to support this feature in the short-to-longterm.**
+
 # Darker Vision for 5e - Foundry VTT Module
 
 This module attempts to replicate `dnd5e` darkvision rules more accurately, leveraging the existing `dim vision` setting on tokens' vision tabs.
